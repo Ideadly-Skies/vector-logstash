@@ -1,303 +1,331 @@
-# Logstash/Vector Experimentation with go-lumber
+# Logstash/Vector Experimentation
 
-This project demonstrates how to use **Vector's logstash source** to receive logs via the **Lumberjack protocol** using the **go-lumber** client library from Elastic.
+[![Go Version](https://img.shields.io/badge/Go-1.21+-00ADD8?style=flat&logo=go)](https://golang.org)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
+A production-ready Go application for testing Vector's Logstash source with the Lumberjack protocol using Elastic's go-lumber client.
 
 ## 📋 Overview
 
-The setup consists of:
+This project demonstrates industry best practices for:
 
-- **Vector** - Acting as a log receiver with a logstash source (listening on port 5044)
-- **Go Lumber Client** - Sending structured log messages via the Lumberjack protocol
-- **Output Sinks** - Console and file outputs to verify received logs
+- **Vector Integration** - Receive logs via the Lumberjack protocol
+- **Structured Logging** - Type-safe log models with JSON serialization
+- **Client Abstraction** - Clean go-lumber client wrapper
+- **Docker Support** - Full containerization with docker-compose
+- **Production Patterns** - Proper error handling, configuration management, and project structure
 
-## 🎯 What is This Testing?
+## 🏗️ Project Structure
 
-### Lumberjack Protocol
-
-The Lumberjack protocol is a binary protocol originally created for Logstash Forwarder (now superseded by Filebeat). It's designed for reliable log shipping with:
-
-- Compression support
-- Acknowledgment of received data
-- Connection multiplexing
-- TLS support (optional)
-
-### Vector's Logstash Source
-
-Vector can act as a Lumberjack protocol server, allowing it to receive logs from:
-
-- Filebeat
-- Logstash forwarders
-- Custom clients (like our go-lumber implementation)
-
-## 🛠️ Prerequisites
-
-1. **Vector** - Install from https://vector.dev/docs/setup/installation/
-
-   ```bash
-   # macOS
-   brew install vector
-
-   # Or download binary
-   curl --proto '=https' --tlsv1.2 -sSfL https://sh.vector.dev | bash
-   ```
-
-2. **Go** - Version 1.21 or later
-
-   ```bash
-   # macOS
-   brew install go
-
-   # Verify
-   go version
-   ```
+```
+.
+├── cmd/                        # Application entrypoints
+│   ├── sender/                # Basic log sender
+│   └── sender-advanced/       # Advanced patterns sender
+├── pkg/                       # Reusable packages
+│   ├── client/               # Lumber client wrapper
+│   └── models/               # Log data models
+├── configs/                   # Configuration files
+│   └── vector.yaml           # Vector configuration
+├── scripts/                   # Shell scripts
+│   ├── setup.sh             # Setup script
+│   └── run.sh               # Run script
+├── docs/                      # Documentation
+│   ├── README.md            # Original detailed guide
+│   ├── TROUBLESHOOTING.md   # Debugging guide
+│   └── examples/            # Example code
+├── Dockerfile                 # Multi-stage Docker build
+├── docker-compose.yaml        # Full stack orchestration
+├── Makefile                   # Build automation
+└── go.mod                     # Go dependencies
+```
 
 ## 🚀 Quick Start
 
-### Step 1: Initialize the Go Module
+### Prerequisites
+
+- Go 1.21+
+- Vector (or Docker)
+- Make (optional)
+
+### Using Make (Recommended)
 
 ```bash
-# Download dependencies
-go mod download
-go mod tidy
+# Install dependencies
+make deps
+
+# Build binaries
+make build
+
+# Start Vector in one terminal
+make vector-start
+
+# Run basic sender in another terminal
+make run
+
+# Or run advanced sender
+make run-advanced
 ```
 
-### Step 2: Create Logs Directory
+### Using Docker Compose
 
 ```bash
-mkdir -p logs
+# Start everything (Vector + Sender)
+docker-compose up
+
+# View logs
+docker-compose logs -f
+
+# Stop
+docker-compose down
 ```
 
-### Step 3: Start Vector
-
-In one terminal window:
+### Manual Build
 
 ```bash
-vector --config vector.yaml
+# Build
+go build -o bin/sender ./cmd/sender
+go build -o bin/sender-advanced ./cmd/sender-advanced
+
+# Run Vector
+vector --config configs/vector.yaml
+
+# Run sender
+./bin/sender -host localhost:5044 -count 10 -interval 1s
 ```
 
-You should see output indicating Vector is listening:
-
-```
-INFO vector::internal_events::vector_started: Vector has started.
-INFO vector::sources::logstash: Listening for connections. address=0.0.0.0:5044
-```
-
-### Step 4: Run the Go Lumber Sender
-
-In another terminal window:
+## 📦 Installation
 
 ```bash
-# Send 10 messages with 1 second interval (default)
-go run sender.go
+# Clone repository
+git clone <repository-url>
+cd logstash-experimentation
 
-# Or customize:
-go run sender.go -count 20 -interval 500ms
-go run sender.go -host localhost:5044 -count 5
+# Install dependencies
+make deps
+
+# Build
+make build
 ```
 
-### Step 5: Observe the Results
+## 💻 Usage
 
-You should see:
+### Basic Sender
 
-1. **Sender terminal**: Confirmation of sent messages
-2. **Vector terminal**: Real-time JSON logs being processed
-3. **logs/ directory**: Daily log files with JSON records
-
-## 📝 Configuration Details
-
-### Vector Configuration (`vector.yaml`)
-
-The configuration defines three components:
-
-#### 1. Source: Logstash Input
-
-```toml
-[sources.logstash_input]
-  type = "logstash"
-  address = "0.0.0.0:5044"
-```
-
-- Listens on all interfaces, port 5044 (standard Lumberjack port)
-- Accepts unencrypted connections for testing
-
-#### 2. Transform: Parse and Enrich
-
-```toml
-[transforms.parse_and_enrich]
-  type = "remap"
-  inputs = ["logstash_input"]
-```
-
-- Parses JSON from the message field
-- Adds processing timestamp
-- Tags with source type
-
-#### 3. Sinks: Console and File
-
-```toml
-[sinks.console_output]
-  type = "console"
-
-[sinks.file_output]
-  type = "file"
-  path = "./logs/vector-output-%Y-%m-%d.log"
-```
-
-- Outputs to both stdout and daily rotating log files
-- Uses JSON encoding for structured logs
-
-### Go Lumber Client (`sender.go`)
-
-Key features:
-
-- **Compression**: Level 3 compression for efficiency
-- **Batching**: Sends logs in batches
-- **Timeout**: 30-second timeout for connections
-- **Structured Logging**: Sends JSON-formatted log messages
-
-## 🧪 Experimentation Ideas
-
-### 1. Test High Volume
+Sends simple structured log messages:
 
 ```bash
-# Send 1000 messages as fast as possible
-go run sender.go -count 1000 -interval 10ms
+# Default: 10 messages, 1s interval
+./bin/sender
+
+# Custom parameters
+./bin/sender -host localhost:5044 -count 20 -interval 500ms
 ```
 
-### 2. Test Connection Resilience
+### Advanced Sender
+
+Sends realistic log patterns (access logs, metrics, errors):
 
 ```bash
-# Start sender, then stop/start Vector mid-stream
-go run sender.go -count 100 -interval 2s
-# Stop Vector (Ctrl+C), wait a few seconds, restart it
+./bin/sender-advanced
 ```
 
-### 3. TLS Configuration
+## 🔧 Configuration
 
-Add to `vector.yaml`:
+### Vector Configuration
 
-```toml
-[sources.logstash_input]
-  type = "logstash"
-  address = "0.0.0.0:5044"
+Located at `configs/vector.yaml`:
 
-  [sources.logstash_input.tls]
-    enabled = true
-    crt_file = "/path/to/server.crt"
-    key_file = "/path/to/server.key"
-    ca_file = "/path/to/ca.crt"  # Optional: for client cert verification
+```yaml
+sources:
+  logstash_input:
+    type: logstash
+    address: "0.0.0.0:5044"
+
+transforms:
+  parse_and_enrich:
+    type: remap
+    inputs: [logstash_input]
+    source: |
+      . = parse_json!(.message)
+      .processed_at = now()
+      .source_type = "lumberjack"
+
+sinks:
+  console_output:
+    type: console
+    inputs: [parse_and_enrich]
+    encoding:
+      codec: json
 ```
 
-Update Go client to use TLS (requires modifying sender.go to use TLS dialer).
-
-### 4. Add Custom Fields
-
-Modify the `LogMessage` struct in `sender.go`:
+### Client Configuration
 
 ```go
-type LogMessage struct {
-    Timestamp string                 `json:"timestamp"`
-    Level     string                 `json:"level"`
-    Service   string                 `json:"service"`
-    Message   string                 `json:"message"`
-    TraceID   string                 `json:"trace_id"`  // New field
-    UserID    string                 `json:"user_id"`    // New field
-    Metadata  map[string]interface{} `json:"metadata"`
+config := &client.Config{
+    Address:          "localhost:5044",
+    Timeout:          30 * time.Second,
+    CompressionLevel: 3,
 }
 ```
 
-### 5. Test Different Sinks
-
-Add additional sinks to `vector.yaml`:
-
-```toml
-# Elasticsearch sink
-[sinks.elasticsearch]
-  type = "elasticsearch"
-  inputs = ["parse_and_enrich"]
-  endpoint = "http://localhost:9200"
-
-# HTTP sink
-[sinks.http]
-  type = "http"
-  inputs = ["parse_and_enrich"]
-  uri = "http://localhost:8080/logs"
-  encoding.codec = "json"
-```
-
-## 📊 Monitoring and Debugging
-
-### Check Vector Metrics
+## 🧪 Testing
 
 ```bash
-# Vector exposes metrics on port 9598 by default
+# Run tests
+make test
+
+# With coverage
+make coverage
+
+# View coverage report
+open coverage.html
+```
+
+## 🎨 Code Quality
+
+```bash
+# Format code
+make fmt
+
+# Run linter
+make lint
+
+# Run all checks
+make all
+```
+
+## 📊 Monitoring
+
+Vector exposes metrics on port 9598:
+
+```bash
+# Check metrics
 curl http://localhost:9598/metrics
+
+# Health check
+curl http://localhost:9598/health
 ```
 
-### Review Log Files
+## 🐳 Docker
+
+### Build Image
 
 ```bash
-# Watch logs in real-time
-tail -f logs/vector-output-*.log | jq .
-
-# Count log levels
-jq -r '.level' logs/vector-output-*.log | sort | uniq -c
+make docker-build
 ```
 
-### Vector Validation
+### Run with Docker Compose
 
 ```bash
-# Validate config before running
-vector validate vector.yaml
+# Start services
+make docker-up
 
-# Run with debug logging
-vector --config vector.yaml --verbose
+# View logs
+make docker-logs
+
+# Stop services
+make docker-down
 ```
 
-## 🔍 Troubleshooting
+## 📚 API Documentation
 
-### Connection Refused
+### Models
 
-- Ensure Vector is running before starting the sender
-- Check the port (5044) is not in use: `lsof -i :5044`
+```go
+// Basic log message
+log := models.NewLogMessage("INFO", "my-service", "message", metadata)
 
-### No Logs Appearing
+// Error log with stack trace
+errorLog := models.NewErrorLog("service", "error msg", "ERR_CODE", stacktrace, metadata)
 
-- Verify Vector's console output shows incoming connections
-- Check firewall settings
-- Ensure logs directory exists and is writable
+// Access log
+accessLog := models.NewAccessLog("service", "GET", "/api/users", "127.0.0.1", 200, 45.2, metadata)
 
-### Go Module Issues
-
-```bash
-# Clean and re-download
-go clean -modcache
-go mod download
+// Metric log
+metricLog := models.NewMetricLog("service", "cpu_usage", "percent", 75.5, tags, metadata)
 ```
 
-## 📚 References
+### Client
 
-- [Vector Logstash Source Documentation](https://vector.dev/docs/reference/configuration/sources/logstash/)
-- [go-lumber GitHub Repository](https://github.com/elastic/go-lumber)
-- [Lumberjack Protocol Specification](https://github.com/elastic/logstash-forwarder/blob/master/PROTOCOL.md)
-- [Vector Configuration Documentation](https://vector.dev/docs/reference/configuration/)
+```go
+// Create client
+client, err := client.NewLumberClient(config)
+defer client.Close()
 
-## 🎓 Learning Points
+// Send single log
+n, err := client.Send(logData)
 
-1. **Protocol Compatibility**: Vector's logstash source is fully compatible with the Lumberjack v2 protocol
-2. **Structured Logging**: The protocol works best with structured (JSON) log data
-3. **Reliability**: Lumberjack provides acknowledgments, making it suitable for critical logs
-4. **Performance**: Compression significantly reduces network bandwidth
-5. **Flexibility**: Vector can receive via Lumberjack and output to dozens of different sinks
+// Send batch
+n, err := client.SendBatch([]interface{}{log1, log2, log3})
+```
 
-## 🔄 Next Steps
+## 🛠️ Development
 
-- Experiment with different Vector transforms (filtering, aggregation)
-- Set up TLS for secure log transmission
-- Integrate with real log sources (Filebeat, Logstash)
-- Test with production-scale log volumes
-- Explore Vector's metrics and observability features
+### Adding New Log Types
+
+1. Define model in `pkg/models/log.go`
+2. Add constructor function
+3. Use in your sender application
+
+### Extending Client
+
+Add methods to `pkg/client/lumber.go`:
+
+```go
+func (lc *LumberClient) SendWithRetry(logData interface{}, retries int) error {
+    // Implementation
+}
+```
+
+## 📖 Additional Documentation
+
+- [Detailed Guide](docs/README.md) - Comprehensive documentation
+- [Troubleshooting](docs/TROUBLESHOOTING.md) - Common issues and solutions
+- [Vector Documentation](https://vector.dev/docs/)
+- [go-lumber Repository](https://github.com/elastic/go-lumber)
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Run tests and linting
+5. Submit a pull request
+
+## 📄 License
+
+MIT License - see LICENSE file for details
+
+## 🔗 References
+
+- [Vector Logstash Source](https://vector.dev/docs/reference/configuration/sources/logstash/)
+- [Lumberjack Protocol](https://github.com/elastic/logstash-forwarder/blob/master/PROTOCOL.md)
+- [Go Project Layout](https://github.com/golang-standards/project-layout)
+
+## 🎯 Makefile Commands
+
+Run `make help` to see all available commands:
+
+```
+  build                Build all binaries
+  build-sender         Build basic sender
+  build-sender-advanced Build advanced sender
+  run                  Run basic sender
+  run-advanced         Run advanced sender
+  test                 Run tests
+  coverage             Generate coverage report
+  fmt                  Format code
+  lint                 Run linter
+  clean                Clean build artifacts
+  vector-start         Start Vector
+  vector-validate      Validate Vector configuration
+  docker-build         Build Docker image
+  docker-up            Start services with docker-compose
+  docker-down          Stop services
+  all                  Run all checks and build
+```
 
 ---
 
-Happy experimenting! 🚀
+Made with ❤️ for production-ready logging experimentation

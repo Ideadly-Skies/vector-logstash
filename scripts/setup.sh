@@ -27,14 +27,19 @@ fi
 echo "✓ Go found: $(go version)"
 echo ""
 
-# Create logs directory
-echo "📁 Creating logs directory..."
-mkdir -p logs
+# Create logs and bin directories
+echo "📁 Creating required directories..."
+mkdir -p logs bin
 
 # Download Go dependencies
 echo "📥 Downloading Go dependencies..."
 go mod download
 go mod tidy
+
+# Build binaries
+echo "🔨 Building binaries..."
+go build -o bin/sender ./cmd/sender
+go build -o bin/sender-advanced ./cmd/sender-advanced
 
 echo ""
 echo "✅ Setup complete!"
@@ -42,12 +47,17 @@ echo ""
 echo "📖 Quick Start Guide:"
 echo ""
 echo "1. Start Vector in one terminal:"
-echo "   $ vector --config vector.yaml"
+echo "   $ vector --config configs/vector.yaml"
 echo ""
 echo "2. Run the sender in another terminal:"
-echo "   $ go run sender.go"
+echo "   $ ./bin/sender"
+echo "   $ ./bin/sender-advanced"
 echo ""
-echo "3. Or use the convenience script:"
-echo "   $ ./run.sh"
+echo "3. Or use Make commands:"
+echo "   $ make vector-start"
+echo "   $ make run"
+echo ""
+echo "4. Or use docker-compose:"
+echo "   $ docker-compose up"
 echo ""
 echo "For more information, see README.md"

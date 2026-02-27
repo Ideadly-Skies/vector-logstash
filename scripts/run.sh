@@ -11,7 +11,7 @@ if lsof -Pi :5044 -sTCP:LISTEN -t >/dev/null ; then
     VECTOR_RUNNING=true
 else
     echo "▶️  Starting Vector..."
-    vector --config vector.yaml &
+    vector --config configs/vector.yaml &
     VECTOR_PID=$!
     VECTOR_RUNNING=false
     
@@ -31,8 +31,14 @@ echo ""
 echo "📤 Sending logs..."
 echo ""
 
+# Build if not exists
+if [ ! -f "bin/sender" ]; then
+    echo "🔨 Building sender..."
+    go build -o bin/sender ./cmd/sender
+fi
+
 # Run the sender
-go run sender.go "$@"
+./bin/sender "$@"
 
 # Clean up if we started Vector
 if [ "$VECTOR_RUNNING" = false ]; then

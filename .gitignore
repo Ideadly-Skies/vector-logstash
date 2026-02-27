@@ -1,14 +1,18 @@
 # .gitignore for logstash-experimentation
 
-# Go builds and binaries
+# Binaries
+/bin/
 *.exe
 *.exe~
 *.dll
 *.so
 *.dylib
-sender
 *.test
+
+# Test coverage
 *.out
+coverage.html
+coverage.txt
 
 # Go workspace
 go.work
@@ -18,12 +22,18 @@ go.work.sum
 logs/
 *.log
 
-# Vector data directory (if any)
+# Vector data directory
 data/
+.vector/
 
 # OS files
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
 Thumbs.db
+ehthumbs.db
 
 # IDE
 .vscode/
@@ -31,7 +41,21 @@ Thumbs.db
 *.swp
 *.swo
 *~
+*.iml
 
 # Temporary files
 tmp/
 temp/
+*.tmp
+
+# Build artifacts
+dist/
+build/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Dependencies
+vendor/

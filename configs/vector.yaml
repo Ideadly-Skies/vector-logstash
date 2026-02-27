@@ -2,6 +2,8 @@
 # This configuration receives logs via the Lumberjack protocol (used by Logstash/Beats)
 # and outputs them to both console and a file
 
+data_dir: "./data"
+
 sources:
   logstash_input:
     type: logstash
@@ -11,6 +13,7 @@ sources:
     # tls:
     #   enabled: false
 
+# Transforms disabled - feeding raw data directly to sinks
 transforms:
   parse_and_enrich:
     type: remap
@@ -35,7 +38,7 @@ sinks:
   file_output:
     type: file
     inputs:
-      - parse_and_enrich
+      - logstash_input
     path: "./logs/vector-output-%Y-%m-%d.log"
     encoding:
       codec: json
