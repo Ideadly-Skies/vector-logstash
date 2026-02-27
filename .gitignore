@@ -1,0 +1,37 @@
+# .gitignore for logstash-experimentation
+
+# Go builds and binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+sender
+*.test
+*.out
+
+# Go workspace
+go.work
+go.work.sum
+
+# Logs generated during testing
+logs/
+*.log
+
+# Vector data directory (if any)
+data/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Temporary files
+tmp/
+temp/

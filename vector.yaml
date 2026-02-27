@@ -1,0 +1,45 @@
+# Vector configuration with Logstash source
+# This configuration receives logs via the Lumberjack protocol (used by Logstash/Beats)
+# and outputs them to both console and a file
+
+sources:
+  logstash_input:
+    type: logstash
+    # Address to listen on - Vector will accept Lumberjack protocol connections here
+    address: "0.0.0.0:5044"
+    # TLS is optional - for testing, we'll start without it
+    # tls:
+    #   enabled: false
+
+transforms:
+  parse_and_enrich:
+    type: remap
+    inputs:
+      - logstash_input
+    source: |
+      # Parse the incoming message and add metadata
+      . = parse_json!(.message)
+      .processed_at = now()
+      .source_type = "lumberjack"
+
+sinks:
+  console_output:
+    type: console
+    inputs:
+      - parse_and_enrich
+    encoding:
+      codec: json
+    # Pretty print for easier reading
+    target: stdout
+
+  file_output:
+    type: file
+    inputs:
+      - parse_and_enrich
+    path: "./logs/vector-output-%Y-%m-%d.log"
+    encoding:
+      codec: json
+    buffer:
+      type: memory
+      max_events: 500
+      when_full: block
